@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Literature Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title text-center mb-4">AI Literature Search</h4>
+
+                    <form id="openAIForm">
+                        <!-- API Key Field -->
+                        <div class="mb-3">
+                            <label for="apiKey" class="form-label">OpenAI API Key</label>
+                            <input class="form-control" id="apiKey" name="apiKey" placeholder="Your API Key"  required>
+                            <small class="text-muted">Don't worry, this will never leave your browser.</small>
+                        </div>
+
+                        <!-- Model Choice Dropdown -->
+                        <div class="mb-3">
+                            <label for="modelChoice" class="form-label">Model Choice</label>
+                            <select class="form-select" id="modelChoice" name="modelChoice">
+                                <option value="gpt-3.5-turbo" selected>gpt-3.5-turbo</option>
+                                <option value="gpt-4">gpt-4</option>
+                                <option value="gpt-4-0613">gpt-4-0613</option>
+                                <option value="gpt-5">gpt-5</option>
+                            </select>
+                        </div>
+
+                        <!-- Research Topic Textarea -->
+                        <div class="mb-3">
+                            <label for="researchTopic" class="form-label">Research Topic</label>
+                            <textarea class="form-control" id="researchTopic" name="researchTopic" rows="5" maxlength="10000" required>I am interested in papers which analyze academic citation graphs as part of a method for ranking the relevance of publications.</textarea>
+                            <small class="text-muted">This input will be used to determine the relevance of the research papers to your literature search. Be as explicit and detailed as you can about what kinds of papers you are and aren't interested in, and the AI will do its best to sort out which papers are relevant.</small>
+                        </div>
+                        <!-- Max Number of Results Field -->
+                        <div class="mb-3">
+                            <label for="maxResults" class="form-label">Max. number of results</label>
+                            <input type="number" class="form-control" id="maxResults" name="maxResults" placeholder="Number of results to show" min="1" value="20" required>
+                            <small class="text-muted">Maximum number of search results you want to appear.</small>
+                        </div>
+
+                        <!-- Search Button -->
+                        <button type="button" class="btn btn-primary" onclick="searchLiterature()">SEARCH</button>
+                    </form>
+                </div>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-12" id="resultsContainer">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="scripts/form_cookies.js"></script>
+<script src="scripts/semantic_scholar_functions.js"></script>
+<script src="scripts/openai_functions.js"></script>
+<script src="scripts/lit_search.js"></script>
+
+<!-- Bootstrap JS (Optional, for interactive components) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
