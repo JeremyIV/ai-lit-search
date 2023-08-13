@@ -60,6 +60,80 @@ function get_authors_string(authorNames){
     }
 }
 
+function truncateTitle(title) {
+    const maxLength = 100;
+    const cutOffLength = 97;
+    
+    if (title.length <= maxLength) {
+        return title;
+    }
+    
+    let truncated = title.slice(0, cutOffLength);
+    truncated = truncated.slice(0, truncated.lastIndexOf(' ')) + '...';
+    
+    return truncated;
+}
+
+async function getMostRelevantPaper(papers, prompt, model, apiKey) {
+    // Each paper in papers has a string-valued attribute "title".
+    const papers_by_title = {}; 
+    const titles = papers.map(paper => {
+        const truncatedTitle = truncateTitle(paper.title);
+        papers_by_title[truncatedTitle] = paper;
+        return truncatedTitle;
+    });
+    const titlesString = titles.join('\n');
+
+    const chatgptPrompt = `
+    Given the following research prompt:
+
+    \`\`\`
+    ${prompt}
+    \`\`\`
+
+    And the following paper titles:
+    \`\`\`
+
+    ${titlesString}
+    \`\`\`
+
+    Pick a title which sounds the most relevant to the research prompt.
+    Please respond with only the title, exactly as it appears in the list.
+    Don't bother responding with anything else, as your response will just be parsed by a simple script.
+    `;
+    console.log(chatgptPrompt)
+    try {
+        const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
+        console.log(responseText);
+
+        const options = {
+            includeScore: true,
+            threshold: 0.4,
+            location: 0,
+            distance: 100,
+            maxPatternLength: 300,
+            minMatchCharLength: 1,
+            keys: ["title"]
+        };
+
+        const fuse = new Fuse(papers, options);
+        const results = fuse.search(responseText);
+        
+        let paper;
+        if (results.length > 0) {
+            paper = results[0].item;
+        } else {
+            paper = papers[0];  // Fallback to the first paper
+        }
+
+        return paper;
+    } catch (error) {
+        console.error(`Failed to compare relevance: ${error.message}`);
+        throw error;  // Or handle this in another way if you prefer
+    }
+}
+
+
 async function getSearchKeywords(prompt, model, apiKey) {
     // TODO
     // ask GPT to generate a list of search keywords for the given research prompt
