@@ -1,4 +1,4 @@
-const paper_fields = "fields=title,authors,abstract,externalIds,year"
+const paper_fields = "fields=title,authors,abstract,externalIds,year,publicationVenue,citationCount"
 async function getPaper(paper_id) {
     const request = `https://api.semanticscholar.org/graph/v1/paper/${paper_id}?${paper_fields}`;
     const response = await fetchJson(request);
@@ -61,6 +61,9 @@ function parsePaper(paperJson) {
         abstract: paperJson["abstract"],
         authorNames: paperJson["authors"].map(author => author["name"]),
         authorIds: paperJson["authors"].map(author => author["authorId"]),
+        year: paperJson["paper"],
+        publicationVenue: (paperJson["publicationVenue"] || {})["name"],
+        citationCount: paperJson["citationCount"],
         summary: null
     };
 }
@@ -84,7 +87,7 @@ async function getRelatedPapers(paper, exploredAuthors) {
 
     async function fetchAndAppendAuthor(authorId, authorName) {
         try {
-            const authorRequest = `https://api.semanticscholar.org/graph/v1/author/${authorId}?fields=papers.title,papers.abstract,papers.authors,papers.externalIds,papers.year`;
+            const authorRequest = `https://api.semanticscholar.org/graph/v1/author/${authorId}?fields=papers.title,papers.abstract,papers.authors,papers.externalIds,papers.year,papers.publicationVenue,papers.citationCount`;
             const response = await fetchJson(authorRequest);
             console.log(`${response['papers'].length} by ${authorName}`);
             

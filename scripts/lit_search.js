@@ -4,7 +4,7 @@ async function getInsertionIndex(sortedList, item, comesEarlier) {
 
     while (low < high) {
         let mid = Math.floor((low + high) / 2);
-        if (await comesEarlier(item, sortedList[mid]['paper'])) {
+        if (await comesEarlier(item, sortedList[mid])) {
             high = mid;
         } else {
             low = mid + 1;
@@ -13,115 +13,89 @@ async function getInsertionIndex(sortedList, item, comesEarlier) {
 
     return low;
 }
+RUNNING = true;
 
+async function stop() {
+    RUNNING=false;
+}
 
 async function searchLiterature() {
+    RUNNING = true;
     const apiKey = document.getElementById("apiKey").value;
     const model = document.getElementById("modelChoice").value;
     const researchTopic = document.getElementById("researchTopic").value;
-    const maxPapers = parseInt(document.getElementById("maxResults").value);
     // Log statements
     console.log("API Key:", apiKey);
     console.log("Model Choice:", model);
     console.log("Research Topic:", researchTopic);
     //console.log("Starting Papers:", startingPaperIds);
 
-    let checkedPapers = new Set(); // Updated to Set
-    let foundPapers = [];
+    async function _getMostRelevantPaper(papers) {
+        return await getMostRelevantPaper(papers, prompt, model, apiKey);
+    }
+
+    let paper_ids = new Set();
+    let tournamentTree = new TournamentTree(20, _getMostRelevantPaper);
+    let foundPapers = []
     let exploredAuthors = new Set(); // Updated to Set
-    const maxRelatedPapers = 100; // Not used currently
 
-    async function moreRelevant(a, b) {
-        return await isMoreRelevant(a, b, researchTopic, model, apiKey) // Updated function name
-    }
-
-    async function addIfRelevant(paper) {
-        if (checkedPapers.has(paper.id)) {
-            return;
-        }
-        checkedPapers.add(paper.id);
-
-        if (await isRelevant(paper, researchTopic, model, apiKey)) { // isRelevant function needs to be defined or imported
-            await summarize(paper, researchTopic, model, apiKey); // summarize function needs to be defined or imported
-            console.log(`Adding ${paper.title}`);
-            console.log(paper)
-            const insertionIndex = await getInsertionIndex(foundPapers, paper, moreRelevant); // This function needs to be defined or imported
-            displayResult(paper, insertionIndex); // This function needs to be defined or imported
-            foundPapers.splice(
-                insertionIndex,
-                0,
-                {  
-                    explored: false,
-                    paper: paper
-                }
-            );
-            // TODO: trim foundPapers and the list of cards to only contain the top n papers.
-            foundPapers = foundPapers.slice(0, maxPapers);
-            dropResultsAfter(maxPapers);
-        } else {
-            console.log(`skipping irrelevant paper: ${paper.title}`)
+    function addToTournamentTree(paper) {
+        if (!paper_ids.has(paper.id)) {
+            paper_ids.add(paper.id);
+            tournamentTree.push(paper);
         }
     }
-
     // Start the literature search process with a some keyword searches
     const searchPhrases = await getSearchKeywords(researchTopic, model, apiKey)
     for (let searchPhrase of searchPhrases) {
         for (let paper of await searchPapers(searchPhrase)){
-            await addIfRelevant(paper);
+            addToTournamentTree(paper);
         }
     }
 
-    // for (paperId of startingPaperIds) {
-    //     // Assuming the paperId is the trimmed line as per the logic.
-    //     // Call getPaper(paperId) to get the paper.
-    //     const paper = await getPaper(paperId);
+    async function moreRelevant(a, b) {
+        return await isMoreRelevant(a, b, researchTopic, model, apiKey)
+    }
 
-    //     // Add the paper's id to checkedPapers.
-    //     checkedPapers.add(paper.id);
+    async function ShowPaper(paper) {
+        const insertionIndex = await getInsertionIndex(foundPapers, paper, moreRelevant);
+        let card = displayResult(paper, insertionIndex); 
+        foundPapers.splice(
+            insertionIndex,
+            0,
+            [paper]
+        );
+        return card;
+    }
 
-    //     // Call summarize for the paper.
-    //     await summarize(paper, researchTopic, model, apiKey);
+    async function addSummary(paper, card) {
+        await summarize(paper, prompt, model, apiKey);
+        let cardBody = card.querySelector('div.card-body');
+        console.log('card body');
+        console.log(cardBody);
+        
+        summaryTitle = document.createElement('h6');
+        summaryTitle.textContent = 'Summary';
+        cardBody.appendChild(summaryTitle);
+        
+        const summaryText = document.createElement('p');
+        summaryText.className = 'card-text';
+        summaryText.textContent = paper.summary;
+        cardBody.appendChild(summaryText);
+    }
 
-    //     // Add the following object to foundPapers.
-    //     foundPapers.push({
-    //         'explored': false,
-    //         'paper': paper
-    //     });
-    //     displayResult(paper, foundPapers.length)
-    // }
-
-    function getNextUnexploredPaper(){
-        for (let paperObj of foundPapers) { // Updated variable name
-            if (!paperObj.explored) {
-                paperObj.explored = true; // Fixed the access to the property
-                return paperObj.paper;
+    let paper;
+    while ((paper = await tournamentTree.pop()) && RUNNING) {
+        if (await isRelevant(paper, researchTopic, model, apiKey)) {
+            // summarize it, add it to found papers
+            console.log(`Adding:`);
+            console.log(paper)
+            let card = await ShowPaper(paper);
+            addSummary(paper, card);
+            for (let relatedPaper of await getRelatedPapers(paper, exploredAuthors)) {
+                addToTournamentTree(relatedPaper);
             }
         }
-        return null;
-    }
-
-    let paper = getNextUnexploredPaper();
-    while (paper && (foundPapers.length <= maxPapers)) { // Updated to use .length
-        console.log(`Searching papers related to ${paper.title}`);
-        let relatedPapers = await getRelatedPapers(paper, exploredAuthors); // This function needs to be defined or imported
-
-        for (let relatedPaper of relatedPapers) {
-            await addIfRelevant(relatedPaper);
-        }
-        paper = getNextUnexploredPaper();
-    }
-}
-
-function dropResultsAfter(n) {
-    // Select the parent container
-    let container = document.getElementById('resultsContainer');
-
-    // Get all child div elements
-    let childDivs = container.querySelectorAll('div.result');
-
-    // Loop through child divs in reverse and remove the ones after the nth div
-    for (let i = childDivs.length - 1; i >= n; i--) {
-        container.removeChild(childDivs[i]);
     }
 }
 
@@ -176,17 +150,29 @@ function displayResult(paper, insertionIndex) {
 
     abstractCollapse.appendChild(abstractText);
 
-    const summaryText = document.createElement('p');
-    summaryText.className = 'card-text';
-    summaryText.textContent = paper.summary;
-
-
     // Appending elements to the card
     cardBody.appendChild(cardTitleLink);
     cardBody.appendChild(cardSubtitle);
+    if (paper.year) {
+        const yearElement = document.createElement('p');
+        yearElement.textContent = `Year: ${paper.year}`;
+        cardBody.appendChild(yearElement);
+    }
+
+    if (paper.publicationVenue) {
+        const venueElement = document.createElement('p');
+        venueElement.textContent = `Publication Venue: ${paper.publicationVenue}`;
+        cardBody.appendChild(venueElement);
+    }
+
+    if (paper.citationCount || paper.citationCount === 0) { // Checking for 0 as well, in case it's a valid count
+        const citationElement = document.createElement('p');
+        citationElement.textContent = `Citations: ${paper.citationCount}`;
+        cardBody.appendChild(citationElement);
+    }
     cardBody.appendChild(abstractButton);
     cardBody.appendChild(abstractCollapse);
-    cardBody.appendChild(summaryText);
+    
     card.appendChild(cardBody);
 
     // Insert card into the results container
@@ -195,4 +181,6 @@ function displayResult(paper, insertionIndex) {
     } else {
         resultsContainer.insertBefore(card, resultsContainer.childNodes[insertionIndex]);
     }
+
+    return card;
 }

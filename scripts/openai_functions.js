@@ -76,6 +76,7 @@ function truncateTitle(title) {
 
 async function getMostRelevantPaper(papers, prompt, model, apiKey) {
     // Each paper in papers has a string-valued attribute "title".
+    // TODO: include year, citations in the prompt
     const papers_by_title = {}; 
     const titles = papers.map(paper => {
         const truncatedTitle = truncateTitle(paper.title);
@@ -123,6 +124,7 @@ async function getMostRelevantPaper(papers, prompt, model, apiKey) {
         if (results.length > 0) {
             paper = results[0].item;
         } else {
+            console.log("Failed to match paper, returning the first title in the list");
             paper = papers[0];  // Fallback to the first paper
         }
 
@@ -165,6 +167,7 @@ async function getSearchKeywords(prompt, model, apiKey) {
 
 
 async function isMoreRelevant(paperA, paperB, prompt, model, apiKey) {
+    // TODO: include year, citations, publication venue in the prompt
     const chatgptPrompt = `
     Given the following research prompt:
 
@@ -177,12 +180,12 @@ async function isMoreRelevant(paperA, paperB, prompt, model, apiKey) {
     Paper A:
     Title: ${paperA.title}
     Authors: ${get_authors_string(paperA.authorNames)}
-    Summary: ${paperA.summary}
+    Abstract: ${paperA.abstract}
 
     Paper B:
     Title: ${paperB.title}
     Authors: ${get_authors_string(paperB.authorNames)}
-    Summary: ${paperB.summary}
+    Abstract: ${paperB.abstract}
 
     Which paper is more relevant to the prompt?
     Simply respond "Paper A" or "Paper B". Don't bother responding with anything else, your response will be parsed by a simple regex script which just finds the first occurrence of one of these two phrases.
@@ -201,6 +204,7 @@ async function isMoreRelevant(paperA, paperB, prompt, model, apiKey) {
 }
 
 async function isRelevant(paper, prompt, model, apiKey) {
+    // TODO: include year, citations, publication venue in the prompt
     const chatgptPrompt = `
     Given the following research prompt:
 
