@@ -4,9 +4,6 @@ async function getInsertionIndex(sortedList, item, comesEarlier) {
 
     while (low < high) {
         let mid = Math.floor((low + high) / 2);
-        console.log("About to call comesEarlier")
-        console.log(sortedList)
-        console.log(mid)
         if (await comesEarlier(item, sortedList[mid])) {
             high = mid;
         } else {
@@ -31,7 +28,6 @@ async function searchLiterature() {
     console.log("API Key:", apiKey);
     console.log("Model Choice:", model);
     console.log("Research Topic:", researchTopic);
-    //console.log("Starting Papers:", startingPaperIds);
 
     async function _getMostRelevantPaper(papers) {
         return await getMostRelevantPaper(papers, researchTopic, model, apiKey);
@@ -73,8 +69,6 @@ async function searchLiterature() {
     async function addSummary(paper, card) {
         await summarize(paper, prompt, model, apiKey);
         let cardBody = card.querySelector('div.card-body');
-        console.log('card body');
-        console.log(cardBody);
         
         summaryTitle = document.createElement('h6');
         summaryTitle.textContent = 'Summary';
