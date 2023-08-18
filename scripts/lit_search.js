@@ -4,6 +4,9 @@ async function getInsertionIndex(sortedList, item, comesEarlier) {
 
     while (low < high) {
         let mid = Math.floor((low + high) / 2);
+        console.log("About to call comesEarlier")
+        console.log(sortedList)
+        console.log(mid)
         if (await comesEarlier(item, sortedList[mid])) {
             high = mid;
         } else {
@@ -31,7 +34,7 @@ async function searchLiterature() {
     //console.log("Starting Papers:", startingPaperIds);
 
     async function _getMostRelevantPaper(papers) {
-        return await getMostRelevantPaper(papers, prompt, model, apiKey);
+        return await getMostRelevantPaper(papers, researchTopic, model, apiKey);
     }
 
     let paper_ids = new Set();
@@ -56,14 +59,13 @@ async function searchLiterature() {
     async function moreRelevant(a, b) {
         return await isMoreRelevant(a, b, researchTopic, model, apiKey)
     }
-
     async function ShowPaper(paper) {
         const insertionIndex = await getInsertionIndex(foundPapers, paper, moreRelevant);
         let card = displayResult(paper, insertionIndex); 
         foundPapers.splice(
             insertionIndex,
             0,
-            [paper]
+            paper
         );
         return card;
     }
@@ -88,10 +90,8 @@ async function searchLiterature() {
     while ((paper = await tournamentTree.pop()) && RUNNING) {
         if (await isRelevant(paper, researchTopic, model, apiKey)) {
             // summarize it, add it to found papers
-            console.log(`Adding:`);
-            console.log(paper)
             let card = await ShowPaper(paper);
-            addSummary(paper, card);
+            //addSummary(paper, card);
             for (let relatedPaper of await getRelatedPapers(paper, exploredAuthors)) {
                 addToTournamentTree(relatedPaper);
             }
@@ -171,7 +171,7 @@ function displayResult(paper, insertionIndex) {
         cardBody.appendChild(citationElement);
     }
     cardBody.appendChild(abstractButton);
-    cardBody.appendChild(abstractCollapse);
+    cardBody.appendChild(abstractText);
     
     card.appendChild(cardBody);
 

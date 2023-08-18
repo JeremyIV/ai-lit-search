@@ -74,6 +74,16 @@ function truncateTitle(title) {
     return truncated;
 }
 
+function getPaperDescription(paper) {
+    return `
+    Title: ${paper.title}
+    Authors: ${get_authors_string(paper.authorNames)}
+    citations: ${paper.citationCount}
+    year: ${paper.year}
+    Abstract: ${paper.abstract}
+    `
+}
+
 async function getMostRelevantPaper(papers, prompt, model, apiKey) {
     // Each paper in papers has a string-valued attribute "title".
     // TODO: include year, citations in the prompt
@@ -85,23 +95,21 @@ async function getMostRelevantPaper(papers, prompt, model, apiKey) {
     });
     const titlesString = titles.join('\n');
 
-    const chatgptPrompt = `
-    Given the following research prompt:
+    const chatgptPrompt = `Given the following research prompt:
 
-    \`\`\`
-    ${prompt}
-    \`\`\`
+\`\`\`
+${prompt}
+\`\`\`
 
-    And the following paper titles:
-    \`\`\`
+And the following paper titles:
+\`\`\`
 
-    ${titlesString}
-    \`\`\`
+${titlesString}
+\`\`\`
 
-    Pick a title which sounds the most relevant to the research prompt.
-    Please respond with only the title, exactly as it appears in the list.
-    Don't bother responding with anything else, as your response will just be parsed by a simple script.
-    `;
+Pick a title which sounds the most relevant to the research prompt.
+Please respond with only the title, exactly as it appears in the list.
+Don't bother responding with anything else, as your response will just be parsed by a simple script.`;
     console.log(chatgptPrompt)
     try {
         const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
@@ -140,16 +148,15 @@ async function getSearchKeywords(prompt, model, apiKey) {
     // TODO
     // ask GPT to generate a list of search keywords for the given research prompt
     // then parse that list and return it.
-        const chatgptPrompt = `
-    Given the following research prompt:
+        const chatgptPrompt = `Given the following research prompt:
 
-    \`\`\`
-    ${prompt}
-    \`\`\`
+\`\`\`
+${prompt}
+\`\`\`
 
-    what are some search phrases which would be a good starting point for finding papers which are relevant to the research prompt?
-    Please respond with a JSON list of keyword search phrases, e.g. ["machine learning", "artificial intelligence"]
-    `;
+what are some search queries which would be a good starting point for finding papers which are relevant to the research prompt?
+produce search queries, possibly containing many words, designed to be entered into a keyword-based academic literature search.
+Please respond with a JSON list of keyword search queries, e.g. ["machine learning", "artificial intelligence"]`;
 
     try {
         const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
@@ -167,31 +174,27 @@ async function getSearchKeywords(prompt, model, apiKey) {
 
 
 async function isMoreRelevant(paperA, paperB, prompt, model, apiKey) {
-    // TODO: include year, citations, publication venue in the prompt
-    const chatgptPrompt = `
-    Given the following research prompt:
+    const chatgptPrompt = `Given the following research prompt:
 
-    \`\`\`
-    ${prompt}
-    \`\`\`
+\`\`\`
+${prompt}
+\`\`\`
 
-    And These summaries of the following two papers:
+And These summaries of the following two papers:
 
-    Paper A:
-    Title: ${paperA.title}
-    Authors: ${get_authors_string(paperA.authorNames)}
-    Abstract: ${paperA.abstract}
+Paper A:
+${getPaperDescription(paperA)}
 
-    Paper B:
-    Title: ${paperB.title}
-    Authors: ${get_authors_string(paperB.authorNames)}
-    Abstract: ${paperB.abstract}
+Paper B:
+${getPaperDescription(paperB)}
 
-    Which paper is more relevant to the prompt?
-    Simply respond "Paper A" or "Paper B". Don't bother responding with anything else, your response will be parsed by a simple regex script which just finds the first occurrence of one of these two phrases.
-    `;
+Which paper is more relevant to the prompt?
+Simply respond "Paper A" or "Paper B". Don't bother responding with anything else, your response will be parsed by a simple regex script which just finds the first occurrence of one of these two phrases.`;
+
+    console.log(chatgptPrompt);
     try {
         const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
+        console.log(responseText);
         const decision = getDecisionFromResponse(responseText, ["paper a", "paper b"]);
         if (!decision) {
             throw new Error(`Badly formatted ChatGPT response: ${responseText}`);
@@ -205,24 +208,23 @@ async function isMoreRelevant(paperA, paperB, prompt, model, apiKey) {
 
 async function isRelevant(paper, prompt, model, apiKey) {
     // TODO: include year, citations, publication venue in the prompt
-    const chatgptPrompt = `
-    Given the following research prompt:
+    const chatgptPrompt = `Given the following research prompt:
 
-    \`\`\`
-    ${prompt}
-    \`\`\`
+\`\`\`
+${prompt}
+\`\`\`
 
-    Does this paper appear relevant to the user's research interests?
+Does this paper appear relevant to the user's research interests?
 
-    Title: ${paper.title}
-    Authors: ${get_authors_string(paper.authorNames)}
-    Abstract: ${paper.abstract}
+${getPaperDescription(paper)}
 
-    Simply respond "yes" or "no". Don't bother responding with anything else, your response will be parsed by a simple regex script which just finds the first occurrence of one of these two words.
-    `;
+Simply respond "yes" or "no". Don't bother responding with anything else, your response will be parsed by a simple regex script which just finds the first occurrence of one of these two words.`;
+
+    console.log(chatgptPrompt);
 
     try {
         const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
+        console.log(responseText);
         const decision = getDecisionFromResponse(responseText, ["yes", "no"]);
         if (!decision) {
             throw new Error(`Badly formatted ChatGPT response: ${responseText}`);
@@ -235,24 +237,20 @@ async function isRelevant(paper, prompt, model, apiKey) {
 }
 
 async function summarize(paper, prompt, model, apiKey) {
-    const chatgptPrompt = `
-    Given the following research prompt:
-    
-    \`\`\`
-    ${prompt}
-    \`\`\`
-    
-    And the following paper abstract:
-    
-    Title: ${paper.title}
-    Authors: ${get_authors_string(paper.authorNames)}
-    Abstract: ${paper.abstract}
-    
-    Give a brief (one paragraph) summary of the paper and its relevance to the prompt.
-    Also discuss how it differs from, or is not relevant to, the prompt.
-    You do not need to include the paper title or authors in the summary.
-    The goal of this summary is to be as useful as possible for assessing the relevance of this paper.
-    `;
+    const chatgptPrompt = `Given the following research prompt:
+
+\`\`\`
+${prompt}
+\`\`\`
+
+And the following paper abstract:
+
+${getPaperDescription(paper)}
+
+Give a brief (one paragraph) summary of the paper and its relevance to the prompt.
+Also discuss how it differs from, or is not relevant to, the prompt.
+You do not need to include the paper title, authors, year, or citation count in the summary.
+The goal of this summary is to be as useful as possible for assessing the relevance of this paper.`;
 
     try {
         const responseText = await askOpenAI(chatgptPrompt, model, apiKey);
