@@ -93,7 +93,12 @@ async function getMostRelevantPaper(papers, prompt, model, apiKey) {
         papers_by_title[truncatedTitle] = paper;
         return truncatedTitle;
     });
-    const titlesString = titles.join('\n');
+    let titlesString = "";
+
+    for (let title in papers_by_title) {
+        let citationCount = papers_by_title[title].citationCount;
+        titlesString += `${citationCount} | ${title}\n`
+    }
 
     const chatgptPrompt = `Given the following research prompt:
 
@@ -101,9 +106,9 @@ async function getMostRelevantPaper(papers, prompt, model, apiKey) {
 ${prompt}
 \`\`\`
 
-And the following paper titles:
+And the following papers:
 \`\`\`
-
+citations | title
 ${titlesString}
 \`\`\`
 
@@ -155,7 +160,7 @@ ${prompt}
 \`\`\`
 
 what are some search queries which would be a good starting point for finding papers which are relevant to the research prompt?
-produce search queries, possibly containing many words, designed to be entered into a keyword-based academic literature search.
+produce five search queries, possibly containing many words, designed to be entered into a keyword-based academic literature search.
 Please respond with a JSON list of keyword search queries, e.g. ["machine learning", "artificial intelligence"]`;
 
     try {
