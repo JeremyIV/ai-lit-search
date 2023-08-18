@@ -119,20 +119,6 @@ function displayResult(paper, insertionIndex) {
     cardSubtitle.textContent = paper.authorNames.join(', ');
 
 
-    // Collapsible section for the abstract using Bootstrap
-
-    // Button for the collapsible section
-    const abstractButton = document.createElement('a');
-    abstractButton.className = 'btn btn-link text-decoration-none';
-    abstractButton.setAttribute('data-bs-toggle', 'collapse');
-    abstractButton.setAttribute('data-bs-target', `#abstract-${paper.id}`);
-    abstractButton.textContent = 'View Abstract ';
-    
-    // Optional: Add a down icon using FontAwesome
-    const downIcon = document.createElement('i');
-    downIcon.className = 'fas fa-chevron-down';  // Assuming you're using FontAwesome
-    abstractButton.appendChild(downIcon);
-
     // Collapsible content
     const abstractCollapse = document.createElement('div');
     abstractCollapse.className = 'collapse mt-2';
@@ -164,7 +150,6 @@ function displayResult(paper, insertionIndex) {
         citationElement.textContent = `Citations: ${paper.citationCount}`;
         cardBody.appendChild(citationElement);
     }
-    cardBody.appendChild(abstractButton);
     cardBody.appendChild(abstractText);
     
     card.appendChild(cardBody);

@@ -1,4 +1,4 @@
-const paper_fields = "fields=title,authors,abstract,externalIds,year,publicationVenue,citationCount"
+const paper_fields = "fields=title,authors,abstract,externalIds,year,publicationVenue,citationCount,url"
 async function getPaper(paper_id) {
     const request = `https://api.semanticscholar.org/graph/v1/paper/${paper_id}?${paper_fields}`;
     const response = await fetchJson(request);
@@ -48,6 +48,8 @@ function getLink(paperJson) {
         if (paperJson["externalIds"]["ArXiv"]) {
             const arxivId = paperJson["externalIds"]["ArXiv"];
             return `https://arxiv.org/abs/${arxivId}`;
+        } else {
+            return paperJson['url'];
         }
     }
     return null;
@@ -87,7 +89,7 @@ async function getRelatedPapers(paper, exploredAuthors) {
 
     async function fetchAndAppendAuthor(authorId, authorName) {
         try {
-            const authorRequest = `https://api.semanticscholar.org/graph/v1/author/${authorId}?fields=papers.title,papers.abstract,papers.authors,papers.externalIds,papers.year,papers.publicationVenue,papers.citationCount`;
+            const authorRequest = `https://api.semanticscholar.org/graph/v1/author/${authorId}?fields=papers.title,papers.abstract,papers.authors,papers.externalIds,papers.year,papers.publicationVenue,papers.citationCount,papers.url`;
             const response = await fetchJson(authorRequest);
             console.log(`${response['papers'].length} by ${authorName}`);
             
